@@ -1,8 +1,10 @@
 
 package test;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.util.List;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,6 +13,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.util.ArrayList;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
 
@@ -22,11 +25,12 @@ public class MyPanel extends JPanel
     int startY;
     int endX;
     int endY;
-    private boolean dragging = false;
     private  List <Shape> shapes = new ArrayList<>();
+    private static boolean isDotted = false; 
     
     public MyPanel()
     {
+        setBackground(Color.WHITE);
         addMouseListener(new MouseListener() );
         addMouseMotionListener(new MouseMotionListener());
         functions();
@@ -40,6 +44,10 @@ public class MyPanel extends JPanel
         JButton rectangle =new JButton("Rectangle");
         JButton oval =new JButton("Oval");
         JButton line =new JButton("Line");
+        JButton freeHand =new JButton("Free Hand");
+        JButton eraser =new JButton("Eraser");
+        JButton clearAll =new JButton("Clear All");
+        JCheckBox dottedCheckbox = new JCheckBox("Dotted Line");
         
         red.addActionListener(new ActionListener() {
             @Override
@@ -89,12 +97,50 @@ public class MyPanel extends JPanel
         }           
         );
         
+        freeHand.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                type="freeHand";
+            }
+        }           
+        );
+        
+        eraser.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                type="eraser";
+            }
+        }           
+        );
+        
+        clearAll.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                shapes.clear();
+                repaint();
+            }
+        }           
+        );
+        
+        
+        dottedCheckbox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                isDotted = dottedCheckbox.isSelected();
+                repaint(); 
+            }
+        });
+        
         add(red);
         add(green);
         add(blue);
         add(rectangle);
         add(oval);
         add(line);
+        add(freeHand);
+        add(eraser);
+        add(clearAll);
+        add(dottedCheckbox);
         
         
     }
@@ -123,11 +169,12 @@ public class MyPanel extends JPanel
     public void paint(Graphics g)
     {
         super.paint(g);
+        Graphics2D g2d = (Graphics2D) g;
         for(int i = 0 ; i < shapes.size() ; i++)
         {
             Shape shape=shapes.get(i);
-            
             g.setColor(shape.color);
+            setStrokeStyle(g2d);
             
             switch(shape.type)
             {
@@ -144,13 +191,22 @@ public class MyPanel extends JPanel
                 case "line":
                     g.drawLine(shape.startX, shape.startY, shape.endX, shape.endY);
                     break;
+                
+                case "freeHand":
+                    g.drawLine(shape.startX, shape.startY, shape.endX, shape.endY);
+                    break;
+                 
+                case "eraser":
+                    g.setColor(Color.WHITE); 
+                    g.fillRect(shape.startX, shape.startY, 20, 20); 
+                    break;    
+                    
             }    
         }
         
         
         g.setColor(color);
-        if(dragging)
-        {
+        setStrokeStyle(g2d);
             switch(type)
             {
                 case "rectangle":
@@ -166,12 +222,21 @@ public class MyPanel extends JPanel
                 case "line":
                     g.drawLine(startX, startY, endX, endY);
                     break;
-            }    
-        }
-        
-        
-        
+                    
+                   
+            }   
     }
+    
+    private void setStrokeStyle(Graphics2D g2d) {
+        if (isDotted) {
+            float[] dashPattern = {5, 5}; 
+            g2d.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, dashPattern, 0));
+        } else {
+            g2d.setStroke(new BasicStroke(1));
+        }
+    }
+    
+
     
     public class MouseListener extends MouseAdapter
     {
@@ -179,8 +244,7 @@ public class MyPanel extends JPanel
         public void mousePressed (MouseEvent e)
         {
             startX=e.getX();
-            startY=e.getY();
-            dragging=true;
+            startY=e.getY();           
         }
         
         @Override
@@ -188,8 +252,7 @@ public class MyPanel extends JPanel
         {
             endX=e.getX();
             endY=e.getY();
-            dragging = false;
-            
+    
             shapes.add(new Shape(startX,startY,endX,endY,type,color) );
             repaint();
         }
@@ -201,12 +264,16 @@ public class MyPanel extends JPanel
         public void mouseDragged (MouseEvent e){
         endX = e.getX();
         endY = e.getY();
+        
+        if(type.equals("freeHand") || type.equals("eraser"))
+        {
+            shapes.add(new Shape(startX, startY, endX, endY, type, color));
+            startX=endX;
+            startY=endY;
+        }
         repaint();
         }
         
     }
-    
-    
-    
     
 }
